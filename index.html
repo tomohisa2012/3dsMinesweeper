@@ -2,31 +2,28 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>3DS Minesweeper - Time Mode</title>
+<title>3DS Minesweeper - Win64 Style</title>
 <style>
-body { margin:0; padding:0; background:#151525; color:white; font-family:Arial; text-align:center; }
-h1 { margin:10px; }
-#topbar { background:#fff; color:#000; padding:5px; font-size:14px; }
-#gameWrapper { display:inline-block; background:#2a2a40; padding:10px; margin-top:10px; }
-table { border-collapse:collapse; margin:0 auto; }
-td { width:28px; height:28px; border:1px solid #333; text-align:center; vertical-align:middle; font-weight:bold; font-size:16px; background:#3a3a55; cursor:pointer; }
-td.revealed { background:#d0d0d0; color:black; cursor:default; }
-button { margin:3px; padding:5px 8px; font-size:12px; }
+body { background:#202020; color:white; font-family:Arial, monospace; text-align:center; }
+#topbar { background:#c0c0c0; color:black; padding:5px; margin-bottom:5px; border:1px solid #808080; }
+#boardWrapper { display:inline-block; background:#d0d0d0; padding:10px; border:2px solid #808080; }
+#board table { border-collapse:collapse; margin:0 auto; }
+#board td { width:24px; height:24px; border:1px solid #000; text-align:center; vertical-align:middle; font-weight:bold; cursor:pointer; }
+td.revealed { background:#e0e0e0; color:black; cursor:default; }
+td.mine { background:#ff4444; color:black; }
+td.flag { background:#ffcc00; color:black; }
+button { margin:2px; padding:4px 6px; font-size:12px; cursor:pointer; }
 #flagButton.active { background-color:#ffcc00; color:black; }
-#message { margin-top:10px; font-size:18px; color:yellow; background:#2a2a40; padding:5px 10px; display:block; min-width:250px; min-height:24px; }
-#restartBtn { margin-top:10px; padding:5px 10px; font-size:14px; display:none; cursor:pointer; }
-#scoreboard { margin-top:10px; background:#3a3a55; padding:5px; min-width:200px; display:inline-block; text-align:left; }
-#scoreboard h3 { margin:5px 0; font-size:14px; }
-#scoreboard ul { margin:0; padding-left:20px; font-size:14px; }
+#message { margin-top:5px; color:yellow; min-height:20px; }
+#restartBtn { margin-top:5px; padding:5px 10px; display:none; cursor:pointer; }
+#scoreboard { margin-top:5px; text-align:left; display:inline-block; background:#3a3a55; color:white; padding:5px; min-width:160px; }
 </style>
 </head>
 <body>
 
-<h1>Minesweeper - Time Mode</h1>
-
+<h2>3DS Minesweeper - Win64 Style</h2>
 <div id="topbar">
-Time: <span id="time">0</span>s　
-Mines: <span id="mineCount">0</span>
+Time: <span id="time">0</span>s &nbsp; Mines: <span id="mineCount">0</span>
 <br>
 <button onclick="setDifficulty('easy')">Easy</button>
 <button onclick="setDifficulty('normal')">Normal</button>
@@ -34,20 +31,18 @@ Mines: <span id="mineCount">0</span>
 <button id="flagButton" onclick="toggleFlag()">Flag Mode</button>
 </div>
 
-<div id="gameWrapper">
+<div id="boardWrapper">
   <div id="board"></div>
-  <div id="message"> </div>
-  <button id="restartBtn" onclick="restartGame()">Restart</button>
+  <div id="message"></div>
+  <button id="restartBtn" onclick="init()">Restart</button>
   <div id="scoreboard"></div>
 </div>
 
 <script>
-var size=8, mines=10, board=[];
-var flagsLeft=0, flagMode=false, firstClick=true, gameEnded=false;
-var timer=0, interval=null;
-var colors={1:"blue",2:"green",3:"red",4:"navy",5:"brown",6:"teal",7:"black",8:"gray"};
-var difficulty="easy";
+var size=8, mines=10, board=[], flagsLeft=0, firstClick=true, gameEnded=false, flagMode=false;
+var timer=0, interval=null, difficulty="easy";
 
+// 難易度設定
 function setDifficulty(level){
   difficulty=level;
   if(level==="easy"){ size=8; mines=10; }
@@ -56,36 +51,34 @@ function setDifficulty(level){
   init();
 }
 
-function toggleFlag(){
-  flagMode=!flagMode;
-  var btn=document.getElementById("flagButton");
-  btn.className = flagMode ? "active" : "";
-}
+// フラグモード切替
+function toggleFlag(){ flagMode=!flagMode; document.getElementById("flagButton").style.background=flagMode?"#ffcc00":"white"; }
 
+// 初期化
 function init(){
   clearInterval(interval);
-  timer=0;
-  board=[]; flagsLeft=mines; firstClick=true; gameEnded=false;
-  document.getElementById("time").innerHTML=timer;
-  document.getElementById("mineCount").innerHTML=flagsLeft;
-  document.getElementById("message").innerHTML=" ";
+  timer=0; firstClick=true; gameEnded=false; flagsLeft=mines;
+  board=[];
+  document.getElementById("time").innerText=timer;
+  document.getElementById("mineCount").innerText=flagsLeft;
+  document.getElementById("message").innerText=" ";
   document.getElementById("restartBtn").style.display="none";
   updateScoreboard();
 
-  // ボードをテーブルで作る
-  var boardDiv=document.getElementById("board"); 
+  // ボード作成
+  var boardDiv=document.getElementById("board");
   boardDiv.innerHTML="";
   var table=document.createElement("table");
   for(var i=0;i<size;i++){
     board[i]=[];
     var tr=document.createElement("tr");
     for(var j=0;j<size;j++){
-      board[i][j]={mine:false,revealed:false,flag:false};
+      board[i][j]={mine:false,revealed:false,flag:false,count:0};
       var td=document.createElement("td");
       td.id="cell_"+i+"_"+j;
-      td.onclick=clickCell;
       td.setAttribute("data-x",i);
       td.setAttribute("data-y",j);
+      td.onclick=function(){ clickCell(parseInt(this.getAttribute("data-x")),parseInt(this.getAttribute("data-y"))); };
       tr.appendChild(td);
     }
     table.appendChild(tr);
@@ -93,6 +86,7 @@ function init(){
   boardDiv.appendChild(table);
 }
 
+// 地雷設置
 function placeMines(safeX,safeY){
   var placed=0;
   while(placed<mines){
@@ -101,104 +95,94 @@ function placeMines(safeX,safeY){
     if(Math.abs(x-safeX)<=1 && Math.abs(y-safeY)<=1) continue;
     if(!board[x][y].mine){ board[x][y].mine=true; placed++; }
   }
+  // 周囲の地雷カウント
+  for(var i=0;i<size;i++){ for(var j=0;j<size;j++){
+    var count=0;
+    for(var dx=-1;dx<=1;dx++){ for(var dy=-1;dy<=1;dy++){
+      var nx=i+dx, ny=j+dy;
+      if(nx>=0&&ny>=0&&nx<size&&ny<size && board[nx][ny].mine) count++;
+    }}
+    board[i][j].count=count;
+  }}
 }
 
-function startTimer(){
-  interval=setInterval(function(){
-    if(gameEnded) return;
-    timer++;
-    document.getElementById("time").innerHTML = timer;
-  },1000);
-}
+// タイマー開始
+function startTimer(){ interval=setInterval(function(){ if(gameEnded)return; timer++; document.getElementById("time").innerText=timer; },1000); }
 
-function clickCell(){
+// セルクリック
+function clickCell(x,y){
   if(gameEnded) return;
-  var x=parseInt(this.getAttribute("data-x"));
-  var y=parseInt(this.getAttribute("data-y"));
-
+  var c=board[x][y];
   if(flagMode){
-    if(!board[x][y].revealed){
-      if(board[x][y].flag){ board[x][y].flag=false; this.innerHTML=""; flagsLeft++; }
-      else if(flagsLeft>0){ board[x][y].flag=true; this.innerHTML="F"; flagsLeft--; }
-      document.getElementById("mineCount").innerHTML=flagsLeft;
-    }
+    if(!c.revealed){ c.flag=!c.flag; flagsLeft+=c.flag?-1:1; document.getElementById("mineCount").innerText=flagsLeft; drawBoard(); }
     return;
   }
-
-  if(board[x][y].revealed || board[x][y].flag) return;
-
-  if(firstClick){
-    placeMines(x,y);
-    firstClick=false;
-    startTimer();
-  }
-
+  if(c.revealed || c.flag) return;
+  if(firstClick){ placeMines(x,y); firstClick=false; startTimer(); }
   revealCell(x,y);
+  drawBoard();
   checkWin();
 }
 
+// セル開く
 function revealCell(x,y){
   if(x<0||y<0||x>=size||y>=size) return;
-  if(board[x][y].revealed || board[x][y].flag) return;
-
-  var cell=document.getElementById("cell_"+x+"_"+y);
-  board[x][y].revealed=true; cell.className="revealed";
-
-  if(board[x][y].mine){
-    cell.innerHTML="X";
-    gameOver("💥 Game Over!");
-    return;
-  }
-
-  var count=0;
-  for(var i=-1;i<=1;i++){ for(var j=-1;j<=1;j++){
-    var nx=x+i, ny=y+j;
-    if(nx>=0&&nx<size && ny>=0&&ny<size){ if(board[nx][ny].mine) count++; }
-  }}
-
-  if(count>0){ cell.innerHTML=count; cell.style.color=colors[count]; }
-  else{ for(var i=-1;i<=1;i++){ for(var j=-1;j<=1;j++){ revealCell(x+i,y+j); } } }
+  var c=board[x][y];
+  if(c.revealed || c.flag) return;
+  c.revealed=true;
+  if(c.mine){ gameOver("💥 Game Over!"); return; }
+  if(c.count==0){ for(var dx=-1;dx<=1;dx++){ for(var dy=-1;dy<=1;dy++){ if(dx!==0||dy!==0) revealCell(x+dx,y+dy); }}}
 }
 
+// ボード描画
+function drawBoard(){
+  for(var i=0;i<size;i++){ for(var j=0;j<size;j++){
+    var td=document.getElementById("cell_"+i+"_"+j);
+    var c=board[i][j];
+    td.className="";
+    td.innerText="";
+    if(c.revealed){
+      if(c.mine){ td.className="mine"; td.innerText="X"; }
+      else { td.className="revealed"; if(c.count>0) td.innerText=c.count; }
+    } else if(c.flag){ td.className="flag"; td.innerText="F"; }
+  }}
+}
+
+// 勝利判定
 function checkWin(){
-  var revealedCount=0;
-  for(var i=0;i<size;i++){ for(var j=0;j<size;j++){ if(board[i][j].revealed) revealedCount++; } }
-  if(revealedCount === size*size - mines){
+  var revealed=0;
+  for(var i=0;i<size;i++){ for(var j=0;j<size;j++){ if(board[i][j].revealed) revealed++; } }
+  if(revealed==size*size-mines){
     gameEnded=true; clearInterval(interval);
-    document.getElementById("message").innerHTML="🎉 Cleared in "+timer+"s!";
+    document.getElementById("message").innerText="🎉 Cleared in "+timer+"s!";
     saveScore();
     updateScoreboard();
     document.getElementById("restartBtn").style.display="inline-block";
   }
 }
 
-function gameOver(msg){
-  gameEnded=true; clearInterval(interval);
-  document.getElementById("message").innerHTML = msg;
-  document.getElementById("restartBtn").style.display="inline-block";
-}
+// ゲームオーバー
+function gameOver(msg){ gameEnded=true; clearInterval(interval); document.getElementById("message").innerText=msg; document.getElementById("restartBtn").style.display="inline-block"; }
 
-function restartGame(){ init(); }
-
+// ハイスコア保存
 function saveScore(){
-  var boardKey = "ms_time_" + difficulty;
-  var boardData = JSON.parse(localStorage.getItem(boardKey)) || [];
-  boardData.push({time: timer, date: new Date().toLocaleDateString()});
-  boardData.sort(function(a,b){return a.time - b.time;});
-  boardData = boardData.slice(0,5);
-  localStorage.setItem(boardKey, JSON.stringify(boardData));
+  var key="ms_time_"+difficulty;
+  var data=JSON.parse(localStorage.getItem(key))||[];
+  data.push({time:timer,date:new Date().toLocaleDateString()});
+  data.sort(function(a,b){return a.time-b.time;});
+  data=data.slice(0,5);
+  localStorage.setItem(key,JSON.stringify(data));
 }
 
+// ハイスコア表示
 function updateScoreboard(){
-  var boardKey = "ms_time_" + difficulty;
-  var boardData = JSON.parse(localStorage.getItem(boardKey)) || [];
-  var sbDiv = document.getElementById("scoreboard");
-  sbDiv.innerHTML = "<h3>"+difficulty.toUpperCase()+" Best Times</h3><ul>" +
-    boardData.map(function(e){return "Time: "+e.time+"s ("+e.date+")";}).join("") + "</ul>";
+  var key="ms_time_"+difficulty;
+  var data=JSON.parse(localStorage.getItem(key))||[];
+  var sb=document.getElementById("scoreboard");
+  sb.innerHTML="<h3>"+difficulty.toUpperCase()+" Best Times</h3><ul>"+data.map(function(e){return "<li>"+e.time+"s ("+e.date+")</li>";}).join("")+"</ul>";
 }
 
 init();
 </script>
-
 </body>
 </html>
