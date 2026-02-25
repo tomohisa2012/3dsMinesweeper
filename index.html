@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>3DS Minesweeper - Win64 Style</title>
+<title>3DS Minesweeper Simple</title>
 <style>
 body { background:#202020; color:white; font-family:Arial, monospace; text-align:center; }
 #topbar { background:#c0c0c0; color:black; padding:5px; margin-bottom:5px; border:1px solid #808080; }
@@ -16,12 +16,11 @@ button { margin:2px; padding:4px 6px; font-size:12px; cursor:pointer; }
 #flagButton.active { background-color:#ffcc00; color:black; }
 #message { margin-top:5px; color:yellow; min-height:20px; }
 #restartBtn { margin-top:5px; padding:5px 10px; display:none; cursor:pointer; }
-#scoreboard { margin-top:5px; text-align:left; display:inline-block; background:#3a3a55; color:white; padding:5px; min-width:160px; }
 </style>
 </head>
 <body>
 
-<h2>3DS Minesweeper - Win64 Style</h2>
+<h2>3DS Minesweeper Simple</h2>
 <div id="topbar">
 Time: <span id="time">0</span>s &nbsp; Mines: <span id="mineCount">0</span>
 <br>
@@ -35,14 +34,12 @@ Time: <span id="time">0</span>s &nbsp; Mines: <span id="mineCount">0</span>
   <div id="board"></div>
   <div id="message"></div>
   <button id="restartBtn" onclick="init()">Restart</button>
-  <div id="scoreboard"></div>
 </div>
 
 <script>
 var size=8, mines=10, board=[], flagsLeft=0, firstClick=true, gameEnded=false, flagMode=false;
 var timer=0, interval=null, difficulty="easy";
 
-// 難易度設定
 function setDifficulty(level){
   difficulty=level;
   if(level==="easy"){ size=8; mines=10; }
@@ -51,10 +48,8 @@ function setDifficulty(level){
   init();
 }
 
-// フラグモード切替
 function toggleFlag(){ flagMode=!flagMode; document.getElementById("flagButton").style.background=flagMode?"#ffcc00":"white"; }
 
-// 初期化
 function init(){
   clearInterval(interval);
   timer=0; firstClick=true; gameEnded=false; flagsLeft=mines;
@@ -63,9 +58,7 @@ function init(){
   document.getElementById("mineCount").innerText=flagsLeft;
   document.getElementById("message").innerText=" ";
   document.getElementById("restartBtn").style.display="none";
-  updateScoreboard();
 
-  // ボード作成
   var boardDiv=document.getElementById("board");
   boardDiv.innerHTML="";
   var table=document.createElement("table");
@@ -86,7 +79,6 @@ function init(){
   boardDiv.appendChild(table);
 }
 
-// 地雷設置
 function placeMines(safeX,safeY){
   var placed=0;
   while(placed<mines){
@@ -95,7 +87,6 @@ function placeMines(safeX,safeY){
     if(Math.abs(x-safeX)<=1 && Math.abs(y-safeY)<=1) continue;
     if(!board[x][y].mine){ board[x][y].mine=true; placed++; }
   }
-  // 周囲の地雷カウント
   for(var i=0;i<size;i++){ for(var j=0;j<size;j++){
     var count=0;
     for(var dx=-1;dx<=1;dx++){ for(var dy=-1;dy<=1;dy++){
@@ -106,10 +97,8 @@ function placeMines(safeX,safeY){
   }}
 }
 
-// タイマー開始
 function startTimer(){ interval=setInterval(function(){ if(gameEnded)return; timer++; document.getElementById("time").innerText=timer; },1000); }
 
-// セルクリック
 function clickCell(x,y){
   if(gameEnded) return;
   var c=board[x][y];
@@ -124,7 +113,6 @@ function clickCell(x,y){
   checkWin();
 }
 
-// セル開く
 function revealCell(x,y){
   if(x<0||y<0||x>=size||y>=size) return;
   var c=board[x][y];
@@ -134,7 +122,6 @@ function revealCell(x,y){
   if(c.count==0){ for(var dx=-1;dx<=1;dx++){ for(var dy=-1;dy<=1;dy++){ if(dx!==0||dy!==0) revealCell(x+dx,y+dy); }}}
 }
 
-// ボード描画
 function drawBoard(){
   for(var i=0;i<size;i++){ for(var j=0;j<size;j++){
     var td=document.getElementById("cell_"+i+"_"+j);
@@ -148,39 +135,17 @@ function drawBoard(){
   }}
 }
 
-// 勝利判定
 function checkWin(){
   var revealed=0;
   for(var i=0;i<size;i++){ for(var j=0;j<size;j++){ if(board[i][j].revealed) revealed++; } }
   if(revealed==size*size-mines){
     gameEnded=true; clearInterval(interval);
     document.getElementById("message").innerText="🎉 Cleared in "+timer+"s!";
-    saveScore();
-    updateScoreboard();
     document.getElementById("restartBtn").style.display="inline-block";
   }
 }
 
-// ゲームオーバー
 function gameOver(msg){ gameEnded=true; clearInterval(interval); document.getElementById("message").innerText=msg; document.getElementById("restartBtn").style.display="inline-block"; }
-
-// ハイスコア保存
-function saveScore(){
-  var key="ms_time_"+difficulty;
-  var data=JSON.parse(localStorage.getItem(key))||[];
-  data.push({time:timer,date:new Date().toLocaleDateString()});
-  data.sort(function(a,b){return a.time-b.time;});
-  data=data.slice(0,5);
-  localStorage.setItem(key,JSON.stringify(data));
-}
-
-// ハイスコア表示
-function updateScoreboard(){
-  var key="ms_time_"+difficulty;
-  var data=JSON.parse(localStorage.getItem(key))||[];
-  var sb=document.getElementById("scoreboard");
-  sb.innerHTML="<h3>"+difficulty.toUpperCase()+" Best Times</h3><ul>"+data.map(function(e){return "<li>"+e.time+"s ("+e.date+")</li>";}).join("")+"</ul>";
-}
 
 init();
 </script>
