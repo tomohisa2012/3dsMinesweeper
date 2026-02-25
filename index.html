@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>3DS Minesweeper SE+HighScore</title>
+<title>3DS Minesweeper Simple</title>
 <style>
 body { background:#202020; color:white; font-family:Arial, monospace; text-align:center; }
 #topbar { background:#c0c0c0; color:black; padding:5px; margin-bottom:5px; border:1px solid #808080; }
@@ -16,12 +16,11 @@ button { margin:2px; padding:4px 6px; font-size:12px; cursor:pointer; }
 #flagButton.active { background-color:#ffcc00; color:black; }
 #message { margin-top:5px; color:yellow; min-height:20px; }
 #restartBtn { margin-top:5px; padding:5px 10px; display:none; cursor:pointer; }
-#scoreboard { margin-top:5px; text-align:left; display:inline-block; background:#3a3a55; color:white; padding:5px; min-width:160px; }
 </style>
 </head>
 <body>
 
-<h2>3DS Minesweeper SE+HighScore</h2>
+<h2>3DS Minesweeper Simple</h2>
 <div id="topbar">
 Time: <span id="time">0</span>s &nbsp; Mines: <span id="mineCount">0</span>
 <br>
@@ -35,11 +34,7 @@ Time: <span id="time">0</span>s &nbsp; Mines: <span id="mineCount">0</span>
   <div id="board"></div>
   <div id="message"></div>
   <button id="restartBtn" onclick="init()">Restart</button>
-  <div id="scoreboard"></div>
 </div>
-
-<audio id="clickSE" src="https://actions.google.com/sounds/v1/button/button_press.ogg"></audio>
-<audio id="explodeSE" src="https://actions.google.com/sounds/v1/explosions/explosion.ogg"></audio>
 
 <script>
 var size=8, mines=10, board=[], flagsLeft=0, firstClick=true, gameEnded=false, flagMode=false;
@@ -63,7 +58,6 @@ function init(){
   document.getElementById("mineCount").innerText=flagsLeft;
   document.getElementById("message").innerText=" ";
   document.getElementById("restartBtn").style.display="none";
-  updateScoreboard();
 
   var boardDiv=document.getElementById("board");
   boardDiv.innerHTML="";
@@ -109,7 +103,7 @@ function clickCell(x,y){
   if(gameEnded) return;
   var c=board[x][y];
   if(flagMode){
-    if(!c.revealed){ c.flag=!c.flag; flagsLeft+=c.flag?-1:1; document.getElementById("mineCount").innerText=flagsLeft; drawBoard(); playSE('click'); }
+    if(!c.revealed){ c.flag=!c.flag; flagsLeft+=c.flag?-1:1; document.getElementById("mineCount").innerText=flagsLeft; drawBoard(); }
     return;
   }
   if(c.revealed || c.flag) return;
@@ -117,7 +111,6 @@ function clickCell(x,y){
   revealCell(x,y);
   drawBoard();
   checkWin();
-  playSE('click');
 }
 
 function revealCell(x,y){
@@ -125,7 +118,7 @@ function revealCell(x,y){
   var c=board[x][y];
   if(c.revealed || c.flag) return;
   c.revealed=true;
-  if(c.mine){ playSE('explode'); gameOver("💥 Game Over!"); return; }
+  if(c.mine){ gameOver("💥 Game Over!"); return; }
   if(c.count==0){ for(var dx=-1;dx<=1;dx++){ for(var dy=-1;dy<=1;dy++){ if(dx!==0||dy!==0) revealCell(x+dx,y+dy); }}}
 }
 
@@ -148,37 +141,11 @@ function checkWin(){
   if(revealed==size*size-mines){
     gameEnded=true; clearInterval(interval);
     document.getElementById("message").innerText="🎉 Cleared in "+timer+"s!";
-    saveScore();
-    updateScoreboard();
     document.getElementById("restartBtn").style.display="inline-block";
   }
 }
 
 function gameOver(msg){ gameEnded=true; clearInterval(interval); document.getElementById("message").innerText=msg; document.getElementById("restartBtn").style.display="inline-block"; }
-
-function playSE(type){
-  var se=null;
-  if(type=='click') se=document.getElementById("clickSE");
-  else if(type=='explode') se=document.getElementById("explodeSE");
-  if(se){ se.currentTime=0; se.play(); }
-}
-
-// ハイスコア
-function saveScore(){
-  var key="ms_time_"+difficulty;
-  var data=JSON.parse(localStorage.getItem(key))||[];
-  data.push({time:timer});
-  data.sort(function(a,b){return a.time-b.time;});
-  data=data.slice(0,5);
-  localStorage.setItem(key,JSON.stringify(data));
-}
-
-function updateScoreboard(){
-  var key="ms_time_"+difficulty;
-  var data=JSON.parse(localStorage.getItem(key))||[];
-  var sb=document.getElementById("scoreboard");
-  sb.innerHTML="<h3>"+difficulty.toUpperCase()+" Best Times</h3><ul>"+data.map(function(e){return "<li>"+e.time+"s</li>";}).join("")+"</ul>";
-}
 
 init();
 </script>
