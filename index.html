@@ -4,19 +4,13 @@
 <meta charset="UTF-8">
 <title>3DS Minesweeper - Time Mode</title>
 <style>
-body { margin:0; padding:0; background:#151525; color:white; font-family: Arial; text-align:center; }
+body { margin:0; padding:0; background:#151525; color:white; font-family:Arial; text-align:center; }
 h1 { margin:10px; }
 #topbar { background:#fff; color:#000; padding:5px; font-size:14px; }
 #gameWrapper { display:inline-block; background:#2a2a40; padding:10px; margin-top:10px; }
-#board { display:block; margin:0 auto; }
-.row { height:28px; }
-.cell {
-  width:28px; height:28px; border:1px solid #333;
-  display:inline-block; line-height:28px; font-weight:bold;
-  font-size:16px; background:#3a3a55; cursor:pointer;
-  text-align:center; vertical-align:top;
-}
-.cell.revealed { background:#d0d0d0; color:black; }
+table { border-collapse:collapse; margin:0 auto; }
+td { width:28px; height:28px; border:1px solid #333; text-align:center; vertical-align:middle; font-weight:bold; font-size:16px; background:#3a3a55; cursor:pointer; }
+td.revealed { background:#d0d0d0; color:black; cursor:default; }
 button { margin:3px; padding:5px 8px; font-size:12px; }
 #flagButton.active { background-color:#ffcc00; color:black; }
 #message { margin-top:10px; font-size:18px; color:yellow; background:#2a2a40; padding:5px 10px; display:block; min-width:250px; min-height:24px; }
@@ -64,7 +58,8 @@ function setDifficulty(level){
 
 function toggleFlag(){
   flagMode=!flagMode;
-  document.getElementById("flagButton").className = flagMode ? "active" : "";
+  var btn=document.getElementById("flagButton");
+  btn.className = flagMode ? "active" : "";
 }
 
 function init(){
@@ -77,19 +72,25 @@ function init(){
   document.getElementById("restartBtn").style.display="none";
   updateScoreboard();
 
-  var boardDiv=document.getElementById("board"); boardDiv.innerHTML="";
+  // ボードをテーブルで作る
+  var boardDiv=document.getElementById("board"); 
+  boardDiv.innerHTML="";
+  var table=document.createElement("table");
   for(var i=0;i<size;i++){
     board[i]=[];
-    var row=document.createElement("div"); row.className="row";
+    var tr=document.createElement("tr");
     for(var j=0;j<size;j++){
       board[i][j]={mine:false,revealed:false,flag:false};
-      var cell=document.createElement("div");
-      cell.className="cell"; cell.dataset.x=i; cell.dataset.y=j;
-      cell.onclick=clickCell;
-      row.appendChild(cell);
+      var td=document.createElement("td");
+      td.id="cell_"+i+"_"+j;
+      td.onclick=clickCell;
+      td.setAttribute("data-x",i);
+      td.setAttribute("data-y",j);
+      tr.appendChild(td);
     }
-    boardDiv.appendChild(row);
+    table.appendChild(tr);
   }
+  boardDiv.appendChild(table);
 }
 
 function placeMines(safeX,safeY){
@@ -112,8 +113,8 @@ function startTimer(){
 
 function clickCell(){
   if(gameEnded) return;
-  var x=parseInt(this.dataset.x);
-  var y=parseInt(this.dataset.y);
+  var x=parseInt(this.getAttribute("data-x"));
+  var y=parseInt(this.getAttribute("data-y"));
 
   if(flagMode){
     if(!board[x][y].revealed){
@@ -140,8 +141,8 @@ function revealCell(x,y){
   if(x<0||y<0||x>=size||y>=size) return;
   if(board[x][y].revealed || board[x][y].flag) return;
 
-  var cell=document.getElementsByClassName("row")[x].children[y];
-  board[x][y].revealed=true; cell.className="cell revealed";
+  var cell=document.getElementById("cell_"+x+"_"+y);
+  board[x][y].revealed=true; cell.className="revealed";
 
   if(board[x][y].mine){
     cell.innerHTML="X";
@@ -164,7 +165,7 @@ function checkWin(){
   for(var i=0;i<size;i++){ for(var j=0;j<size;j++){ if(board[i][j].revealed) revealedCount++; } }
   if(revealedCount === size*size - mines){
     gameEnded=true; clearInterval(interval);
-    document.getElementById("message").innerHTML="🎉 You cleared the game in "+timer+"s!";
+    document.getElementById("message").innerHTML="🎉 Cleared in "+timer+"s!";
     saveScore();
     updateScoreboard();
     document.getElementById("restartBtn").style.display="inline-block";
@@ -183,8 +184,8 @@ function saveScore(){
   var boardKey = "ms_time_" + difficulty;
   var boardData = JSON.parse(localStorage.getItem(boardKey)) || [];
   boardData.push({time: timer, date: new Date().toLocaleDateString()});
-  boardData.sort((a,b)=>a.time - b.time); // 小さい時間順
-  boardData = boardData.slice(0,5); // 上位5件
+  boardData.sort(function(a,b){return a.time - b.time;});
+  boardData = boardData.slice(0,5);
   localStorage.setItem(boardKey, JSON.stringify(boardData));
 }
 
@@ -193,7 +194,7 @@ function updateScoreboard(){
   var boardData = JSON.parse(localStorage.getItem(boardKey)) || [];
   var sbDiv = document.getElementById("scoreboard");
   sbDiv.innerHTML = "<h3>"+difficulty.toUpperCase()+" Best Times</h3><ul>" +
-    boardData.map(e=>"Time: "+e.time+"s ("+e.date+")").join("") + "</ul>";
+    boardData.map(function(e){return "Time: "+e.time+"s ("+e.date+")";}).join("") + "</ul>";
 }
 
 init();
