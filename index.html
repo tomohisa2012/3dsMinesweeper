@@ -2,78 +2,60 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>3DS Minesweeper</title>
+<title>3DS Minesweeper - Time Mode</title>
 <style>
-html, body { height: 100%; margin:0; padding:0; background:#151525; color:white; font-family: Arial; }
-body { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; }
-h1 { margin: 10px; }
-#topbar { background: #fff; color: #000; padding: 8px; font-size: 14px; width:100%; text-align:center; box-sizing:border-box; }
-#boardWrapper { 
-  background:#2a2a40; padding:10px; margin-top:10px; 
-  display:inline-block; min-width: max-content; 
-}
-#board { display:inline-block; }
-.row { height: 28px; }
+body { margin:0; padding:0; background:#151525; color:white; font-family: Arial; text-align:center; }
+h1 { margin:10px; }
+#topbar { background:#fff; color:#000; padding:5px; font-size:14px; }
+#gameWrapper { display:inline-block; background:#2a2a40; padding:10px; margin-top:10px; }
+#board { display:block; margin:0 auto; }
+.row { height:28px; }
 .cell {
-  width: 28px; height: 28px; border: 1px solid #333;
-  display: inline-block; line-height: 28px; font-weight: bold;
-  font-size: 16px; background: #3a3a55; cursor: pointer;
-  vertical-align: top; box-sizing: border-box;
-  text-align: center; /* 数字を中央に */
+  width:28px; height:28px; border:1px solid #333;
+  display:inline-block; line-height:28px; font-weight:bold;
+  font-size:16px; background:#3a3a55; cursor:pointer;
+  text-align:center; vertical-align:top;
 }
-.cell.revealed { background: #d0d0d0; color: black; }
-button { margin: 3px; padding: 5px 8px; font-size: 12px; }
-#flagButton.active { background-color: #ffcc00; color: black; }
-#message { margin-top: 10px; font-size: 18px; color: yellow; background:#2a2a40; padding:5px 10px; display:inline-block; min-width:250px; min-height:24px; }
-#restartBtn { margin-top: 10px; padding:5px 10px; font-size:14px; display:none; cursor:pointer; }
+.cell.revealed { background:#d0d0d0; color:black; }
+button { margin:3px; padding:5px 8px; font-size:12px; }
+#flagButton.active { background-color:#ffcc00; color:black; }
+#message { margin-top:10px; font-size:18px; color:yellow; background:#2a2a40; padding:5px 10px; display:block; min-width:250px; min-height:24px; }
+#restartBtn { margin-top:10px; padding:5px 10px; font-size:14px; display:none; cursor:pointer; }
+#scoreboard { margin-top:10px; background:#3a3a55; padding:5px; min-width:200px; display:inline-block; text-align:left; }
+#scoreboard h3 { margin:5px 0; font-size:14px; }
+#scoreboard ul { margin:0; padding-left:20px; font-size:14px; }
 </style>
 </head>
 <body>
 
-<h1>Minesweeper</h1>
+<h1>Minesweeper - Time Mode</h1>
 
 <div id="topbar">
-  Time: <span id="time">0</span>s　
-  Mines: <span id="mineCount">0</span>　
-  Score: <span id="score">0</span>
-  <br>
-  <button onclick="setDifficulty('easy')">Easy</button>
-  <button onclick="setDifficulty('normal')">Normal</button>
-  <button onclick="setDifficulty('hard')">Hard</button>
-  <button id="flagButton" onclick="toggleFlag()">Flag Mode</button>
+Time: <span id="time">0</span>s　
+Mines: <span id="mineCount">0</span>
+<br>
+<button onclick="setDifficulty('easy')">Easy</button>
+<button onclick="setDifficulty('normal')">Normal</button>
+<button onclick="setDifficulty('hard')">Hard</button>
+<button id="flagButton" onclick="toggleFlag()">Flag Mode</button>
 </div>
 
-<div id="boardWrapper">
+<div id="gameWrapper">
   <div id="board"></div>
+  <div id="message"> </div>
+  <button id="restartBtn" onclick="restartGame()">Restart</button>
+  <div id="scoreboard"></div>
 </div>
-
-<div id="message"> </div>
-<button id="restartBtn" onclick="restartGame()">Restart</button>
 
 <script>
-var size=8, mines=10, board=[], score=0;
+var size=8, mines=10, board=[];
 var flagsLeft=0, flagMode=false, firstClick=true, gameEnded=false;
 var timer=0, interval=null;
 var colors={1:"blue",2:"green",3:"red",4:"navy",5:"brown",6:"teal",7:"black",8:"gray"};
-var audioCtx=null;
-
-function playSound(type){
-  try{
-    if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
-    var osc=audioCtx.createOscillator();
-    var gain=audioCtx.createGain();
-    osc.connect(gain); gain.connect(audioCtx.destination);
-    if(type==="open") osc.frequency.value=600;
-    if(type==="flag") osc.frequency.value=300;
-    if(type==="boom") osc.frequency.value=100;
-    osc.start();
-    gain.gain.setValueAtTime(0.2,audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.15);
-    osc.stop(audioCtx.currentTime+0.15);
-  }catch(e){}
-}
+var difficulty="easy";
 
 function setDifficulty(level){
+  difficulty=level;
   if(level==="easy"){ size=8; mines=10; }
   else if(level==="normal"){ size=12; mines=20; }
   else if(level==="hard"){ size=16; mines=40; }
@@ -82,18 +64,18 @@ function setDifficulty(level){
 
 function toggleFlag(){
   flagMode=!flagMode;
-  var btn=document.getElementById("flagButton");
-  btn.className = flagMode ? "active" : "";
+  document.getElementById("flagButton").className = flagMode ? "active" : "";
 }
 
 function init(){
-  clearInterval(interval); timer=0;
-  board=[]; score=0; flagsLeft=mines; firstClick=true; gameEnded=false;
-  document.getElementById("score").innerHTML=score;
-  document.getElementById("mineCount").innerHTML=flagsLeft;
+  clearInterval(interval);
+  timer=0;
+  board=[]; flagsLeft=mines; firstClick=true; gameEnded=false;
   document.getElementById("time").innerHTML=timer;
+  document.getElementById("mineCount").innerHTML=flagsLeft;
   document.getElementById("message").innerHTML=" ";
   document.getElementById("restartBtn").style.display="none";
+  updateScoreboard();
 
   var boardDiv=document.getElementById("board"); boardDiv.innerHTML="";
   for(var i=0;i<size;i++){
@@ -120,6 +102,14 @@ function placeMines(safeX,safeY){
   }
 }
 
+function startTimer(){
+  interval=setInterval(function(){
+    if(gameEnded) return;
+    timer++;
+    document.getElementById("time").innerHTML = timer;
+  },1000);
+}
+
 function clickCell(){
   if(gameEnded) return;
   var x=parseInt(this.dataset.x);
@@ -128,7 +118,7 @@ function clickCell(){
   if(flagMode){
     if(!board[x][y].revealed){
       if(board[x][y].flag){ board[x][y].flag=false; this.innerHTML=""; flagsLeft++; }
-      else if(flagsLeft>0){ board[x][y].flag=true; this.innerHTML="F"; flagsLeft--; playSound("flag"); }
+      else if(flagsLeft>0){ board[x][y].flag=true; this.innerHTML="F"; flagsLeft--; }
       document.getElementById("mineCount").innerHTML=flagsLeft;
     }
     return;
@@ -137,8 +127,9 @@ function clickCell(){
   if(board[x][y].revealed || board[x][y].flag) return;
 
   if(firstClick){
-    placeMines(x,y); firstClick=false;
-    interval=setInterval(function(){ timer++; document.getElementById("time").innerHTML=timer; },1000);
+    placeMines(x,y);
+    firstClick=false;
+    startTimer();
   }
 
   revealCell(x,y);
@@ -153,10 +144,8 @@ function revealCell(x,y){
   board[x][y].revealed=true; cell.className="cell revealed";
 
   if(board[x][y].mine){
-    cell.innerHTML="X"; playSound("boom");
-    document.getElementById("message").innerHTML="💥 Game Over!";
-    gameEnded=true; clearInterval(interval);
-    document.getElementById("restartBtn").style.display="inline-block";
+    cell.innerHTML="X";
+    gameOver("💥 Game Over!");
     return;
   }
 
@@ -168,9 +157,6 @@ function revealCell(x,y){
 
   if(count>0){ cell.innerHTML=count; cell.style.color=colors[count]; }
   else{ for(var i=-1;i<=1;i++){ for(var j=-1;j<=1;j++){ revealCell(x+i,y+j); } } }
-
-  score+=10; document.getElementById("score").innerHTML=score;
-  playSound("open");
 }
 
 function checkWin(){
@@ -178,15 +164,37 @@ function checkWin(){
   for(var i=0;i<size;i++){ for(var j=0;j<size;j++){ if(board[i][j].revealed) revealedCount++; } }
   if(revealedCount === size*size - mines){
     gameEnded=true; clearInterval(interval);
-    var bonus = Math.max(0,50 - timer);
-    score += bonus;
-    document.getElementById("score").innerHTML = score;
-    document.getElementById("message").innerHTML="🎉 You cleared the game! Score: "+score+" Time: "+timer+"s (Bonus: "+bonus+")";
+    document.getElementById("message").innerHTML="🎉 You cleared the game in "+timer+"s!";
+    saveScore();
+    updateScoreboard();
     document.getElementById("restartBtn").style.display="inline-block";
   }
 }
 
+function gameOver(msg){
+  gameEnded=true; clearInterval(interval);
+  document.getElementById("message").innerHTML = msg;
+  document.getElementById("restartBtn").style.display="inline-block";
+}
+
 function restartGame(){ init(); }
+
+function saveScore(){
+  var boardKey = "ms_time_" + difficulty;
+  var boardData = JSON.parse(localStorage.getItem(boardKey)) || [];
+  boardData.push({time: timer, date: new Date().toLocaleDateString()});
+  boardData.sort((a,b)=>a.time - b.time); // 小さい時間順
+  boardData = boardData.slice(0,5); // 上位5件
+  localStorage.setItem(boardKey, JSON.stringify(boardData));
+}
+
+function updateScoreboard(){
+  var boardKey = "ms_time_" + difficulty;
+  var boardData = JSON.parse(localStorage.getItem(boardKey)) || [];
+  var sbDiv = document.getElementById("scoreboard");
+  sbDiv.innerHTML = "<h3>"+difficulty.toUpperCase()+" Best Times</h3><ul>" +
+    boardData.map(e=>"Time: "+e.time+"s ("+e.date+")").join("") + "</ul>";
+}
 
 init();
 </script>
